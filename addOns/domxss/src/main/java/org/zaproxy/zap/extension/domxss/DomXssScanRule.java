@@ -73,7 +73,12 @@ public class DomXssScanRule extends AbstractAppParamPlugin {
     protected static final String HASH_JAVASCRIPT_ALERT = "#javascript:alert(1)";
     protected static final String HASH_ALERT = "#alert(1)";
     protected static final String QUERY_HASH_IMG_ALERT =
-            "?name=abc#<img src=\"random.gif\" onerror=alert(1)>";
+            "?name=abc#<img src=\\\"random.gif\\\" onerror=alert(1)>";
+
+    private static final String IMG_ALERT = "<img src=\"random.gif\" onerror=alert(1)>";
+    private static final String SCRIPT_ALERT = "<script>alert(1)</script>";
+    private static final String JAVASCRIPT_ALERT = "javascript:alert(1)";
+    private static final String JAVASCRIPT_ALERT_2 = "javascript\\n:alert()";
 
     // In order of effectiveness vs benchmark apps
     public static final String[] ATTACK_STRINGS = {
@@ -86,18 +91,17 @@ public class DomXssScanRule extends AbstractAppParamPlugin {
         HASH_IMG_ALERT,
         HASH_HASH_ALERT,
         HASH_HASH_IMG_ALERT,
+        JAVASCRIPT_ALERT_2
     };
 
-    private static final String IMG_ALERT = "<img src=\"random.gif\" onerror=alert(1)>";
-    private static final String SCRIPT_ALERT = "<script>alert(1)</script>";
-    private static final String JAVASCRIPT_ALERT = "javascript:alert(1)";
-
-    public static final String[] PARAM_ATTACK_STRINGS = {SCRIPT_ALERT, JAVASCRIPT_ALERT, IMG_ALERT};
+    public static final String[] PARAM_ATTACK_STRINGS = {
+        SCRIPT_ALERT, JAVASCRIPT_ALERT, IMG_ALERT, JAVASCRIPT_ALERT_2
+    };
 
     /** The name of the rule to obtain the ID of the browser. */
     private static final String RULE_BROWSER_ID = "rules.domxss.browserid";
 
-    private static final Browser DEFAULT_BROWSER = Browser.FIREFOX_HEADLESS;
+    private static final Browser DEFAULT_BROWSER = Browser.FIREFOX;
 
     private static Map<Browser, Stack<WebDriverWrapper>> freeDrivers =
             new HashMap<Browser, Stack<WebDriverWrapper>>();
@@ -453,9 +457,12 @@ public class DomXssScanRule extends AbstractAppParamPlugin {
         }
 
         List<WebElement> inputElements;
+        List<WebElement> buttons;
 
         try {
             inputElements = findHelper(driver, By.tagName("input"));
+            buttons = findHelper(driver, By.tagName("button"));
+            inputElements.addAll(buttons);
         } catch (UnhandledAlertException uae) {
             Stats.incCounter("domxss.vulns.input1");
             throw new DomAlertException(url, attackVector);
@@ -563,6 +570,7 @@ public class DomXssScanRule extends AbstractAppParamPlugin {
         for (int i = 0; i < numberOfAttackStrings; i++) {
             attackVectors.add(ATTACK_STRINGS[i]);
         }
+        System.out.println("attack vectors " + attackVectors);
 
         try {
             driver = getWebDriver();
